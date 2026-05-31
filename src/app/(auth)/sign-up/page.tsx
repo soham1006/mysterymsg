@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useDebounce } from 'usehooks-ts';
+import { useDebounceValue } from 'usehooks-ts';
 import * as z from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -28,8 +28,8 @@ export default function SignUpForm() {
   const [usernameMessage, setUsernameMessage] = useState('');
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [debouncedUsername] = useDebounce(username, 300);
 
+const [debouncedUsername] = useDebounceValue(username, 300);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -42,28 +42,44 @@ export default function SignUpForm() {
     },
   });
 
-  useEffect(() => {
-    const checkUsernameUnique = async () => {
-      if (debouncedUsername) {
-        setIsCheckingUsername(true);
-        setUsernameMessage(''); // Reset message
-        try {
-          const response = await axios.get<ApiResponse>(
-            `/api/check-username-unique?username=${debouncedUsername}`
-          );
-          setUsernameMessage(response.data.message);
-        } catch (error) {
-          const axiosError = error as AxiosError<ApiResponse>;
-          setUsernameMessage(
-            axiosError.response?.data.message ?? 'Error checking username'
-          );
-        } finally {
-          setIsCheckingUsername(false);
-        }
-      }
-    };
-    checkUsernameUnique();
-  }, [debouncedUsername]);
+  
+useEffect(() => {
+  console.log("USERNAME:", username);
+  console.log("DEBOUNCED:", debouncedUsername);
+
+  const checkUsernameUnique = async () => {
+    // Don't call API for short usernames
+    if (!debouncedUsername || debouncedUsername.length < 2) {
+      setUsernameMessage('');
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    setUsernameMessage('');
+
+    try {
+      const response = await axios.get<ApiResponse>(
+        `/api/check-username-unique?username=${debouncedUsername}`
+      );
+
+      console.log("API RESPONSE:", response.data);
+
+      setUsernameMessage(response.data.message);
+    } catch (error) {
+      console.error("API ERROR:", error);
+
+      const axiosError = error as AxiosError<ApiResponse>;
+
+      setUsernameMessage(
+        axiosError.response?.data.message ?? 'Error checking username'
+      );
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
+
+  checkUsernameUnique();
+}, [debouncedUsername, username]);
 
   const onSubmit = async (data: z.infer<typeof signUpSchema>) => {
     setIsSubmitting(true);
@@ -110,34 +126,42 @@ export default function SignUpForm() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
-              name="username"
-              control={form.control}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <Input
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      setUsername(e.target.value);
-                    }}
-                  />
-                  {isCheckingUsername && <Loader2 className="animate-spin" />}
-                  {!isCheckingUsername && usernameMessage && (
-                    <p
-                      className={`text-sm ${
-                        usernameMessage === 'Username is unique'
-                          ? 'text-green-500'
-                          : 'text-red-500'
-                      }`}
-                    >
-                      {usernameMessage}
-                    </p>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+  name="username"
+  control={form.control}
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Username</FormLabel>
+
+      <Input
+        {...field}
+        onChange={(e) => {
+          console.log("INPUT:", e.target.value);
+
+          field.onChange(e);
+          setUsername(e.target.value);
+        }}
+      />
+
+      {isCheckingUsername && (
+        <Loader2 className="animate-spin h-4 w-4" />
+      )}
+
+      {!isCheckingUsername && usernameMessage && (
+        <p
+          className={`text-sm ${
+            usernameMessage === 'Username is unique'
+              ? 'text-green-500'
+              : 'text-red-500'
+          }`}
+        >
+          {usernameMessage}
+        </p>
+      )}
+
+      <FormMessage />
+    </FormItem>
+  )}
+/>
             <FormField
               name="email"
               control={form.control}

@@ -27,29 +27,40 @@ export default function VerifyAccount() {
   });
 
   const onSubmit = async (data: z.infer<typeof verifySchema>) => {
-    try {
-      const response = await axios.post<ApiResponse>(`/api/verify-code`, {
+  try {
+    console.log("Submitting username:", params.username);
+    console.log("Submitting code:", data.code);
+
+    const response = await axios.post<ApiResponse>(
+      '/api/verify-code',
+      {
         username: params.username,
         code: data.code,
-      });
+      }
+    );
 
-      toast({
-        title: 'Success',
-        description: response.data.message,
-      });
+    console.log("Verification Response:", response.data);
 
-      router.replace('/sign-in');
-    } catch (error) {
-      const axiosError = error as AxiosError<ApiResponse>;
-      toast({
-        title: 'Verification Failed',
-        description:
-          axiosError.response?.data.message ??
-          'An error occurred. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
+    toast({
+      title: 'Success',
+      description: response.data.message,
+    });
+
+    router.replace('/sign-in');
+  } catch (error) {
+    console.error("Verification Error:", error);
+
+    const axiosError = error as AxiosError<ApiResponse>;
+
+    toast({
+      title: 'Verification Failed',
+      description:
+        axiosError.response?.data.message ??
+        'An error occurred. Please try again.',
+      variant: 'destructive',
+    });
+  }
+};
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
