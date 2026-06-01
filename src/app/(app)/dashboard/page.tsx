@@ -24,7 +24,9 @@ function UserDashboard() {
   const { toast } = useToast();
 
   const handleDeleteMessage = (messageId: string) => {
-    setMessages(messages.filter((message) => message._id !== messageId));
+    setMessages(
+  messages.filter((message) => message._id.toString() !== messageId)
+);
   };
 
   const { data: session } = useSession();
@@ -181,7 +183,7 @@ function UserDashboard() {
         {messages.length > 0 ? (
           messages.map((message, index) => (
             <MessageCard
-              key={message._id}
+              key={message._id.toString()}
               message={message}
               onMessageDelete={handleDeleteMessage}
             />
